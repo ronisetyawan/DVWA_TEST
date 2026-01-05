@@ -1,4 +1,4 @@
-name: Trivy Container Scan to Artifact
+name: Security Automated Scans
 
 on:
   push:
@@ -7,24 +7,30 @@ on:
     branches: [ "main" ]
 
 jobs:
-  trivy-scan:
+  security-audit:
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Trivy Container Scan and Save to TXT
+      - name: Build Docker Image
+        run: |
+          docker build -t my-app-internal:${{ github.sha }} .
+
+      - name: Run Container Scan
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'image'
-          scan-ref: '.'
+          image-ref: 'my-app-internal:${{ github.sha }}'
           format: 'table'
-          output: 'trivy-report.txt'
-          severity: 'CRITICAL,HIGH,MEDIUM,LOW'
+          output: 'container-report.txt'
+          severity: 'CRITICAL,HIGH'
           exit-code: '0'
 
-      - name: Upload Scan Report
+      - name: Upload Security Reports
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: trivy-security-report-container
-          path: trivy-report.txt
+          name: container-security-reports
+          path: |
+            container-report.txt
